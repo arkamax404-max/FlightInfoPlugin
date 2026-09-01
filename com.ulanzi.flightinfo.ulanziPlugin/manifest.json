@@ -3,7 +3,7 @@
   "Name": "Flight Info",
   "Description": "Display personal AirLabs flight status on a Ulanzi D200 key.",
   "Icon": "assets/plugin.png",
-  "Version": "0.1.2",
+  "Version": "0.1.3",
   "Category": "Travel",
   "CategoryIcon": "assets/plugin.png",
   "CodePath": "dist/main.js",

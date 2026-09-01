@@ -13,10 +13,18 @@ const { presentFlightStatus } = require("../src/plugin/presentation.js");
 const { createFlightImage } = require("../src/plugin/flight-image-renderer.js");
 const { HostClient } = require("../src/plugin/host-client.js");
 const {
+  AUTOMATIC_POLL_INTERVALS,
+  automaticPollInterval,
+  beginRefresh,
+  finishRefresh,
+  isConfiguredFlightDate,
   isLandedFlight,
+  localCalendarDate,
+  isNearFlightWindow,
   settingsChanged,
   shouldRefresh,
   shouldPoll,
+  shouldRefreshOnContextUpdate,
 } = require("../src/plugin/main.js");
 
 const FLIGHT_TIMES = {
@@ -230,38 +238,203 @@ test("renders five-line D200 SVG images with bold schedule rows and a dominant v
   }
 });
 
-test("stops automatic polling after a landed flight while allowing manual refresh and settings reactivation", () => {
-  const activeAction = { active: true, terminal: false };
-  const landedAction = { active: true, terminal: true };
+test("uses adaptive polling only on the configured flight date", () => {
+  const action = {
+    active: true,
+    terminal: false,
+    settings: { flightDate: "2026-09-02" },
+  };
+  const onFlightDate = new Date(2026, 8, 2, 12);
 
   assert.equal(
-    isLandedFlight({ kind: "flight", status: "landed" }),
+    isConfiguredFlightDate(action.settings.flightDate, onFlightDate),
     true,
   );
+  assert.equal(
+    isConfiguredFlightDate(
+      action.settings.flightDate,
+      new Date(2026, 8, 1, 23, 59, 59),
+    ),
+    false,
+  );
+  assert.equal(
+    isConfiguredFlightDate(action.settings.flightDate, new Date(2026, 8, 3)),
+    false,
+  );
+  assert.equal(shouldPoll(action, onFlightDate), true);
+  assert.equal(shouldPoll(action, new Date(2026, 8, 1, 23, 59, 59)), false);
+});
+
+test("keeps the configured local flight date active across a UTC date boundary", () => {
+  const localFlightMorning = new Date("2026-09-01T23:30:00.000Z");
+  localFlightMorning.getFullYear = () => 2026;
+  localFlightMorning.getMonth = () => 8;
+  localFlightMorning.getDate = () => 2;
+  localFlightMorning.toISOString = () => "2026-09-01T23:30:00.000Z";
+  const action = {
+    active: true,
+    terminal: false,
+    settings: { flightDate: "2026-09-02" },
+  };
+
+  assert.equal(localCalendarDate(localFlightMorning), "2026-09-02");
+  assert.equal(isConfiguredFlightDate("2026-09-02", localFlightMorning), true);
+  assert.equal(shouldPoll(action, localFlightMorning), true);
+  assert.equal(
+    automaticPollInterval(action, localFlightMorning),
+    AUTOMATIC_POLL_INTERVALS.default,
+  );
+});
+
+test("immediately refreshes only new or changed contexts configured for today", () => {
+  const action = {
+    active: true,
+    terminal: false,
+    settings: { flightDate: "2026-09-02" },
+  };
+  const today = new Date(2026, 8, 2, 12);
+
+  assert.equal(shouldRefreshOnContextUpdate(action, true, today), true);
+  assert.equal(shouldRefreshOnContextUpdate(action, false, today), false);
+  assert.equal(
+    shouldRefreshOnContextUpdate(
+      action,
+      true,
+      new Date(2026, 8, 1, 23, 59, 59),
+    ),
+    false,
+  );
+  assert.equal(
+    shouldRefreshOnContextUpdate(action, true, new Date(2026, 8, 3)),
+    false,
+  );
+  assert.equal(
+    shouldRefreshOnContextUpdate({ ...action, refreshing: true }, true, today),
+    false,
+  );
+  assert.equal(
+    shouldRefreshOnContextUpdate({ ...action, terminal: true }, true, today),
+    false,
+  );
+});
+
+test("uses a 60-minute default cadence and a 15-minute near-flight cadence", () => {
+  const action = {
+    active: true,
+    terminal: false,
+    settings: { flightDate: "2026-09-02" },
+  };
+  const status = { kind: "flight", ...FLIGHT_TIMES, status: "scheduled" };
+
+  assert.equal(
+    isNearFlightWindow(status, new Date("2026-09-02T11:30:00Z")),
+    true,
+  );
+  assert.equal(
+    isNearFlightWindow(status, new Date("2026-09-02T19:30:00Z")),
+    true,
+  );
+  assert.equal(
+    isNearFlightWindow(status, new Date("2026-09-02T11:29:59Z")),
+    false,
+  );
+  assert.equal(
+    isNearFlightWindow(status, new Date("2026-09-02T19:30:01Z")),
+    false,
+  );
+  assert.equal(
+    automaticPollInterval(action, new Date("2026-09-02T10:00:00Z")),
+    AUTOMATIC_POLL_INTERVALS.default,
+  );
+  action.status = status;
+  assert.equal(
+    automaticPollInterval(action, new Date("2026-09-02T15:00:00Z")),
+    AUTOMATIC_POLL_INTERVALS.nearFlight,
+  );
+  assert.equal(AUTOMATIC_POLL_INTERVALS.default, 60 * 60 * 1000);
+  assert.equal(AUTOMATIC_POLL_INTERVALS.nearFlight, 15 * 60 * 1000);
+});
+
+test("prevents overlapping refreshes while preserving manual override and landed stop", () => {
+  const action = {
+    active: true,
+    terminal: true,
+    settings: { flightDate: "2026-09-02" },
+  };
+
+  assert.equal(shouldRefresh(action), false);
+  assert.equal(shouldRefresh(action, true), true);
+  assert.equal(shouldPoll(action, new Date("2026-09-02T12:00:00Z")), false);
+  action.terminal = false;
+  assert.equal(beginRefresh(action), true);
+  assert.equal(beginRefresh(action), false);
+  finishRefresh(action);
+  assert.equal(beginRefresh(action), true);
+});
+
+test("stops automatic polling after a landed flight while allowing manual refresh and settings reactivation", () => {
+  const activeAction = {
+    active: true,
+    terminal: false,
+    settings: { flightDate: "2026-09-02" },
+  };
+  const landedAction = { ...activeAction, terminal: true };
+
+  assert.equal(isLandedFlight({ kind: "flight", status: "landed" }), true);
   assert.equal(isLandedFlight({ kind: "unavailable" }), false);
   assert.equal(shouldRefresh(landedAction), false);
   assert.equal(shouldRefresh(landedAction, true), true);
-  assert.equal(shouldPoll(landedAction), false);
-  assert.equal(shouldPoll(activeAction), true);
+  assert.equal(
+    shouldPoll(landedAction, new Date("2026-09-02T12:00:00Z")),
+    false,
+  );
+  assert.equal(
+    shouldPoll(activeAction, new Date("2026-09-02T12:00:00Z")),
+    true,
+  );
   assert.equal(shouldPoll({ active: false, terminal: false }), false);
   assert.equal(
     settingsChanged(
-      { flightIdentifier: "GA100", flightDate: "2026-09-02", airLabsApiKey: "key" },
-      { flightIdentifier: "GA200", flightDate: "2026-09-02", airLabsApiKey: "key" },
+      {
+        flightIdentifier: "GA100",
+        flightDate: "2026-09-02",
+        airLabsApiKey: "key",
+      },
+      {
+        flightIdentifier: "GA200",
+        flightDate: "2026-09-02",
+        airLabsApiKey: "key",
+      },
     ),
     true,
   );
   assert.equal(
     settingsChanged(
-      { flightIdentifier: "GA100", flightDate: "2026-09-02", airLabsApiKey: "key" },
-      { flightIdentifier: "GA100", flightDate: "2026-09-02", airLabsApiKey: "new-key" },
+      {
+        flightIdentifier: "GA100",
+        flightDate: "2026-09-02",
+        airLabsApiKey: "key",
+      },
+      {
+        flightIdentifier: "GA100",
+        flightDate: "2026-09-02",
+        airLabsApiKey: "new-key",
+      },
     ),
     true,
   );
   assert.equal(
     settingsChanged(
-      { flightIdentifier: "GA100", flightDate: "2026-09-02", airLabsApiKey: "key" },
-      { flightIdentifier: "GA100", flightDate: "2026-09-02", airLabsApiKey: "key" },
+      {
+        flightIdentifier: "GA100",
+        flightDate: "2026-09-02",
+        airLabsApiKey: "key",
+      },
+      {
+        flightIdentifier: "GA100",
+        flightDate: "2026-09-02",
+        airLabsApiKey: "key",
+      },
     ),
     false,
   );

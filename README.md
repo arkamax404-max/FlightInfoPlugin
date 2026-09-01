@@ -15,7 +15,20 @@ Flight Info uses the personal-use AirLabs flight endpoint. An AirLabs API key is
 
 AirLabs is queried by `flight_iata`; its single-flight endpoint returns the closest matching flight, so the configured flight date is not a date-exact AirLabs lookup. The D200 dynamic image uses five lines: flight code; bold departure airport and schedule (`SVQ 06:50`); bold arrival airport and schedule (`ORY 09:20`); a state label; and a large bold value. Scheduled and en-route flights use `TIME LEFT` with the remaining duration, delayed flights use `DELAYED` with the delay, and landed flights use `STATUS` with `LANDED`. IATA airport codes are normalized when present; ICAO codes or `---` placeholders safely cover missing airport data. Loading and unavailable states retain their static fallback icons.
 
-Physical D200 buttons use generated base64 SVG images for flight details because host-rendered text metadata is not reliable on the device. Loading, unavailable, and fallback states continue to use their static manifest icons.
+Physical D200 buttons use generated base64 SVG images for flight details because host-rendered text metadata is not reliable on the device. When AirLabs has no data, the dynamic image keeps the configured flight code and date and shows `NO DATA`; loading retains its static fallback icon.
+
+## Polling and AirLabs quota
+
+Automatic requests are limited per configured D200 key to protect personal AirLabs quotas:
+
+| Situation | Automatic refresh |
+| --- | --- |
+| Before or after the configured local flight date | Disabled; use the key for a manual refresh. |
+| Flight date, normal state | Every 60 minutes (24 requests per full day at this cadence). |
+| From 3 hours before departure through 3 hours after arrival | Every 15 minutes (4 requests per hour). |
+| Flight reported as `LANDED` | Disabled; the final flight details remain visible. |
+
+The plugin performs one initial automatic refresh when a new or changed configuration applies to the current local flight date. Manual key presses always refresh immediately. Concurrent refreshes for the same key are prevented, and changing the flight, date, or API key resets the schedule. The precise usage depends on the flight duration and manual refreshes; do not use the old 30-second polling interval, which would consume 2,880 requests per day for one active key.
 
 ## Architecture and limitations
 
