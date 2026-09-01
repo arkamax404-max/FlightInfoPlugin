@@ -6,8 +6,6 @@ const clearApiKey = document.querySelector("#clear-api-key");
 let settings = {
   flightIdentifier: "GA100",
   flightDate: "2026-09-01",
-  providerMode: "simulation",
-  simulationScenario: "normal",
   airLabsApiKey: "",
 };
 
@@ -36,8 +34,6 @@ function saveSettings() {
     ...settings,
     flightIdentifier: form.elements.flightIdentifier.value.trim().toUpperCase(),
     flightDate: form.elements.flightDate.value,
-    providerMode: form.elements.providerMode.value,
-    simulationScenario: form.elements.simulationScenario.value,
     airLabsApiKey: enteredKey || settings.airLabsApiKey,
   };
   $UD.sendParamFromPlugin(settings);
@@ -49,8 +45,6 @@ function saveSettings() {
 function applySettings() {
   form.elements.flightIdentifier.value = settings.flightIdentifier;
   form.elements.flightDate.value = settings.flightDate;
-  form.elements.providerMode.value = settings.providerMode;
-  form.elements.simulationScenario.value = settings.simulationScenario;
   form.elements.airLabsApiKey.value = "";
   renderKeyStatus();
 }

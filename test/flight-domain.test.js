@@ -3,9 +3,6 @@ const test = require("node:test");
 const { normalizeSettings } = require("../src/plugin/settings.js");
 const { toFlightQuery } = require("../src/plugin/flight-provider.js");
 const {
-  SimulatedFlightProvider,
-} = require("../src/plugin/simulated-flight-provider.js");
-const {
   AirLabsFlightProvider,
   normalizeAirLabsFlight,
 } = require("../src/plugin/airlabs-flight-provider.js");
@@ -26,26 +23,24 @@ const AIRLABS_TIMES = {
   arr_time: FLIGHT_TIMES.scheduledArrival,
 };
 
-test("normalizes persisted flight settings including explicit provider mode", () => {
+test("normalizes persisted flight settings for the AirLabs provider", () => {
   assert.deepEqual(
     normalizeSettings({
       flightIdentifier: " ga 100 ",
       flightDate: "2026-09-02",
-      providerMode: "airlabs",
-      simulationScenario: "delayed",
+      airLabsApiKey: " personal-key ",
     }),
     {
       flightIdentifier: "GA100",
       flightDate: "2026-09-02",
-      providerMode: "airlabs",
-      simulationScenario: "delayed",
-      airLabsApiKey: "",
+      airLabsApiKey: "personal-key",
     },
   );
-  assert.equal(
-    normalizeSettings({ providerMode: "remote" }).providerMode,
-    "simulation",
-  );
+  assert.deepEqual(normalizeSettings(), {
+    flightIdentifier: "GA100",
+    flightDate: "2026-09-01",
+    airLabsApiKey: "",
+  });
 });
 
 test("builds a provider-neutral flight query", () => {
@@ -55,50 +50,24 @@ test("builds a provider-neutral flight query", () => {
   });
 });
 
-test("simulator has deterministic configured outcomes and route", async () => {
+test("AirLabs returns unavailable without a configured personal key or request", async () => {
   const query = { identifier: "GA100", date: "2026-09-01" };
-  assert.deepEqual(
-    await new SimulatedFlightProvider("normal").getFlightStatus(query),
-    {
-      kind: "flight",
-      flight: query,
-      route: { departure: "CGK", destination: "DPS" },
-      scheduledTime: "14:30",
-      scheduledDeparture: "2026-09-01T14:30:00Z",
-      scheduledArrival: "2026-09-01T16:30:00Z",
-      status: "scheduled",
-    },
-  );
-  assert.deepEqual(
-    await new SimulatedFlightProvider("delayed").getFlightStatus(query),
-    {
-      kind: "delayed",
-      flight: query,
-      route: { departure: "CGK", destination: "DPS" },
-      delayMinutes: 45,
-      scheduledTime: "14:30",
-      scheduledDeparture: "2026-09-01T14:30:00Z",
-      scheduledArrival: "2026-09-01T16:30:00Z",
-    },
-  );
-  assert.deepEqual(
-    await new SimulatedFlightProvider("unavailable").getFlightStatus(query),
-    { kind: "unavailable", flight: query },
-  );
-});
-
-test("AirLabs returns a typed unavailable outcome when no personal key is configured", async () => {
-  const query = { identifier: "GA100", date: "2026-09-01" };
-  assert.deepEqual(await new AirLabsFlightProvider("").getFlightStatus(query), {
+  let requestCount = 0;
+  const provider = new AirLabsFlightProvider("", async () => {
+    requestCount += 1;
+    throw new Error("A keyless provider must not make a request");
+  });
+  assert.deepEqual(await provider.getFlightStatus(query), {
     kind: "unavailable",
     flight: query,
     reason: "not_configured",
   });
-  assert.deepEqual(await new AirLabsFlightProvider("").getFlightStatus(), {
+  assert.deepEqual(await provider.getFlightStatus(), {
     kind: "unavailable",
     flight: { identifier: undefined, date: undefined },
     reason: "not_configured",
   });
+  assert.equal(requestCount, 0);
 });
 
 test("AirLabs normalizes IATA routes and safely falls back to ICAO or placeholders", () => {

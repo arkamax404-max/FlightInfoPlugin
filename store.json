@@ -1,0 +1,9 @@
+{
+  "cover": "resources/store/cover.png",
+  "screenshots": [
+    "resources/store/banner-flight-status.png"
+  ],
+  "longDescription": "Flight Info brings a focused AirLabs flight board to your Ulanzi D200. Configure a flight code and your personal AirLabs API key to view departure and arrival schedules, remaining time, and flight status. An AirLabs API key is required for flight updates. Press the key for a manual refresh whenever you need one.",
+  "deviceTypes": ["D200"],
+  "tags": ["Travel", "Flight status", "Utilities"]
+}

@@ -1,7 +1,7 @@
 {
   "Author": "FlightInfoPlugin",
   "Name": "Flight Info",
-  "Description": "Display simulated or AirLabs flight status on a Ulanzi D200 key.",
+  "Description": "Display personal AirLabs flight status on a Ulanzi D200 key.",
   "Icon": "assets/plugin.svg",
   "Version": "0.1.0",
   "Category": "Travel",

@@ -1,13 +1,8 @@
 const DEFAULT_SETTINGS = Object.freeze({
   flightIdentifier: "GA100",
   flightDate: "2026-09-01",
-  providerMode: "simulation",
-  simulationScenario: "normal",
   airLabsApiKey: "",
 });
-
-const SCENARIOS = new Set(["normal", "delayed", "unavailable"]);
-const PROVIDER_MODES = new Set(["simulation", "airlabs"]);
 
 function normalizeFlightIdentifier(value) {
   const identifier =
@@ -33,12 +28,6 @@ function normalizeSettings(value = {}) {
   return {
     flightIdentifier: normalizeFlightIdentifier(value.flightIdentifier),
     flightDate: normalizeFlightDate(value.flightDate),
-    providerMode: PROVIDER_MODES.has(value.providerMode)
-      ? value.providerMode
-      : DEFAULT_SETTINGS.providerMode,
-    simulationScenario: SCENARIOS.has(value.simulationScenario)
-      ? value.simulationScenario
-      : DEFAULT_SETTINGS.simulationScenario,
     airLabsApiKey: normalizeApiKey(value.airLabsApiKey),
   };
 }

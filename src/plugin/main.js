@@ -1,6 +1,5 @@
 const { HostClient } = require("./host-client.js");
 const { FlightStatusService } = require("./flight-status-service.js");
-const { SimulatedFlightProvider } = require("./simulated-flight-provider.js");
 const { AirLabsFlightProvider } = require("./airlabs-flight-provider.js");
 const { normalizeSettings } = require("./settings.js");
 const { presentFlightStatus } = require("./presentation.js");
@@ -9,10 +8,8 @@ const { createFlightImage } = require("./flight-image-renderer.js");
 const PLUGIN_UUID = "com.ulanzi.ulanzistudio.flightinfo";
 const contexts = new Map();
 const host = new HostClient();
-const service = new FlightStatusService((settings) =>
-  settings.providerMode === "airlabs"
-    ? new AirLabsFlightProvider(settings.airLabsApiKey)
-    : new SimulatedFlightProvider(settings.simulationScenario),
+const service = new FlightStatusService(
+  (settings) => new AirLabsFlightProvider(settings.airLabsApiKey),
 );
 let pollTimer;
 
