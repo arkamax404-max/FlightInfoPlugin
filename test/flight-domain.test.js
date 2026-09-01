@@ -12,6 +12,12 @@ const {
 const { presentFlightStatus } = require("../src/plugin/presentation.js");
 const { createFlightImage } = require("../src/plugin/flight-image-renderer.js");
 const { HostClient } = require("../src/plugin/host-client.js");
+const {
+  isLandedFlight,
+  settingsChanged,
+  shouldRefresh,
+  shouldPoll,
+} = require("../src/plugin/main.js");
 
 const FLIGHT_TIMES = {
   scheduledDeparture: "2026-09-02T14:30:00Z",
@@ -224,17 +230,69 @@ test("renders five-line D200 SVG images with bold schedule rows and a dominant v
   }
 });
 
-test("keeps loading and unavailable presentations on manifest icons", () => {
+test("stops automatic polling after a landed flight while allowing manual refresh and settings reactivation", () => {
+  const activeAction = { active: true, terminal: false };
+  const landedAction = { active: true, terminal: true };
+
+  assert.equal(
+    isLandedFlight({ kind: "flight", status: "landed" }),
+    true,
+  );
+  assert.equal(isLandedFlight({ kind: "unavailable" }), false);
+  assert.equal(shouldRefresh(landedAction), false);
+  assert.equal(shouldRefresh(landedAction, true), true);
+  assert.equal(shouldPoll(landedAction), false);
+  assert.equal(shouldPoll(activeAction), true);
+  assert.equal(shouldPoll({ active: false, terminal: false }), false);
+  assert.equal(
+    settingsChanged(
+      { flightIdentifier: "GA100", flightDate: "2026-09-02", airLabsApiKey: "key" },
+      { flightIdentifier: "GA200", flightDate: "2026-09-02", airLabsApiKey: "key" },
+    ),
+    true,
+  );
+  assert.equal(
+    settingsChanged(
+      { flightIdentifier: "GA100", flightDate: "2026-09-02", airLabsApiKey: "key" },
+      { flightIdentifier: "GA100", flightDate: "2026-09-02", airLabsApiKey: "new-key" },
+    ),
+    true,
+  );
+  assert.equal(
+    settingsChanged(
+      { flightIdentifier: "GA100", flightDate: "2026-09-02", airLabsApiKey: "key" },
+      { flightIdentifier: "GA100", flightDate: "2026-09-02", airLabsApiKey: "key" },
+    ),
+    false,
+  );
+});
+
+test("renders unavailable flights as a dynamic D200 image without exposing provider credentials", () => {
   assert.deepEqual(presentFlightStatus(), { state: 0, text: "LOADING" });
+  assert.equal(createFlightImage(presentFlightStatus()), null);
+
+  const unavailable = presentFlightStatus({
+    kind: "unavailable",
+    flight: { identifier: " ga100 ", date: "2026-09-02" },
+    airLabsApiKey: "redacted",
+  });
+  assert.deepEqual(unavailable, {
+    state: 3,
+    text: "GA100\n2026-09-02\nNO DATA",
+  });
+
+  const image = createFlightImage(unavailable);
+  assert.match(image, /^data:image\/svg\+xml;base64,/);
+  const svg = Buffer.from(image.split(",")[1], "base64").toString("utf8");
+  assert.match(svg, /<text x="98" y="25"[^>]*text-anchor="middle">GA100<\/text>/);
+  assert.match(svg, /<text x="98" y="94"[^>]*text-anchor="middle">2026-09-02<\/text>/);
+  assert.match(svg, /<text x="98" y="139"[^>]*text-anchor="middle">NO DATA<\/text>/);
+  assert.equal(svg.includes("redacted"), false);
+
   assert.deepEqual(presentFlightStatus({ kind: "unavailable" }), {
     state: 3,
-    text: "NO DATA",
+    text: "---\n---\nNO DATA",
   });
-  assert.equal(createFlightImage(presentFlightStatus()), null);
-  assert.equal(
-    createFlightImage(presentFlightStatus({ kind: "unavailable" })),
-    null,
-  );
 });
 
 test("sends generated images through the Ulanzi type 1 custom-image payload", () => {

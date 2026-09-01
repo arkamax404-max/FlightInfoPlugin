@@ -1,8 +1,8 @@
 function presentFlightStatus(status, now = new Date()) {
   if (!status) return { state: 0, text: "LOADING" };
-  if (status.kind === "unavailable") return { state: 3, text: "NO DATA" };
+  if (status.kind === "unavailable") return unavailableView(status.flight);
   if (status.kind !== "flight" && status.kind !== "delayed")
-    return { state: 3, text: "NO DATA" };
+    return unavailableView(status.flight);
 
   const departure = new Date(status.scheduledDeparture);
   const arrival = new Date(status.scheduledArrival);
@@ -11,7 +11,7 @@ function presentFlightStatus(status, now = new Date()) {
     Number.isNaN(arrival.getTime()) ||
     arrival < departure
   )
-    return { state: 3, text: "NO DATA" };
+    return unavailableView(status.flight);
 
   const lines = [
     status.flight.identifier,
@@ -37,6 +37,27 @@ function presentFlightStatus(status, now = new Date()) {
     lines.push(status.status.toUpperCase().slice(0, 12));
   }
   return { state: 1, text: lines.join("\n") };
+}
+
+function unavailableView(flight) {
+  return {
+    state: 3,
+    text: [
+      displayFlightIdentifier(flight?.identifier),
+      displayFlightDate(flight?.date),
+      "NO DATA",
+    ].join("\n"),
+  };
+}
+
+function displayFlightIdentifier(value) {
+  const identifier = typeof value === "string" ? value.trim().toUpperCase() : "";
+  return identifier ? identifier.slice(0, 12) : "---";
+}
+
+function displayFlightDate(value) {
+  const date = typeof value === "string" ? value.trim() : "";
+  return /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : "---";
 }
 
 function displayAirportCode(value) {
