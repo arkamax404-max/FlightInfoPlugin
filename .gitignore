@@ -1,0 +1,6 @@
+/.atl/
+# Local Pi runtime state
+.atl/
+.pi/
+com.ulanzi.flightinfo.ulanziPlugin/dist/
+com.ulanzi.flightinfo.ulanziPlugin/package/

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Flight settings</title>
+    <link rel="stylesheet" href="inspector.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Flight status</h1>
+      <form id="settings">
+        <label
+          >Flight identifier
+          <input
+            name="flightIdentifier"
+            maxlength="8"
+            pattern="[A-Za-z0-9]{2,8}"
+            required
+          />
+        </label>
+        <label
+          >Flight date
+          <input name="flightDate" type="date" required />
+        </label>
+        <label
+          >Provider
+          <select name="providerMode">
+            <option value="simulation">Simulation</option>
+            <option value="airlabs">AirLabs (personal API key)</option>
+          </select>
+        </label>
+        <label
+          >Simulation scenario
+          <select name="simulationScenario">
+            <option value="normal">Normal</option>
+            <option value="delayed">Delayed</option>
+            <option value="unavailable">Unavailable</option>
+          </select>
+        </label>
+        <label
+          >AirLabs API key
+          <input name="airLabsApiKey" type="password" autocomplete="off" />
+        </label>
+        <button id="clear-api-key" type="button">Clear saved API key</button>
+        <output id="key-status" role="status"></output>
+        <output id="status" role="status">Connecting…</output>
+      </form>
+    </main>
+    <script src="../lib/host-api.js"></script>
+    <script src="inspector.js"></script>
+  </body>
+</html>

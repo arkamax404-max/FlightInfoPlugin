@@ -1,0 +1,33 @@
+{
+  "Author": "FlightInfoPlugin",
+  "Name": "Flight Info",
+  "Description": "Display simulated or AirLabs flight status on a Ulanzi D200 key.",
+  "Icon": "assets/plugin.svg",
+  "Version": "0.1.0",
+  "Category": "Travel",
+  "CategoryIcon": "assets/plugin.svg",
+  "CodePath": "dist/main.js",
+  "Type": "JavaScript",
+  "PrivateAPI": false,
+  "UUID": "com.ulanzi.ulanzistudio.flightinfo",
+  "Actions": [{
+    "Name": "Flight Status",
+    "Icon": "assets/action.svg",
+    "PropertyInspectorPath": "property-inspector/flight/inspector.html",
+    "state": 4,
+    "States": [
+      { "Name": "Loading", "Image": "assets/loading.svg" },
+      { "Name": "On time", "Image": "assets/normal.svg" },
+      { "Name": "Delayed", "Image": "assets/delayed.svg" },
+      { "Name": "Unavailable", "Image": "assets/unavailable.svg" }
+    ],
+    "Tooltip": "Show flight status; press to refresh",
+    "UUID": "com.ulanzi.ulanzistudio.flightinfo.status",
+    "SupportedInMultiActions": false,
+    "DisableAutomaticStates": true,
+    "Controllers": ["Keypad"],
+    "Devices": ["D200"]
+  }],
+  "OS": [{ "Platform": "windows", "MinimumVersion": "10" }],
+  "Software": { "MinVersion": "2.1.4" }
+}

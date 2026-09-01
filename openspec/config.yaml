@@ -1,0 +1,48 @@
+schema: spec-driven
+
+project: flightinfoplugin
+persistence: hybrid
+execution_mode: interactive
+delivery_strategy: ask-on-risk
+review_budget_lines: 800
+strict_tdd: false
+
+context: |
+  Workspace: FlightInfoPlugin.
+  Current repository directory is empty; no implementation stack has been detected.
+  Architecture and SDK usage are intentionally unspecified until real Ulanzi examples are inspected.
+  Generated technical artifacts use English.
+  Hybrid persistence stores OpenSpec files and Engram observations.
+
+projects: []
+
+testing:
+  strict_tdd: false
+  reason: No project roots or explicit workspace-wide test command were discovered.
+  projects: []
+
+rules:
+  proposal:
+    - Include a rollback plan for risky changes.
+    - Do not invent Ulanzi SDK APIs; cite inspected real examples before proposing integrations.
+  specs:
+    - Use Given/When/Then for scenarios.
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY).
+  design:
+    - Include sequence diagrams for complex flows.
+    - Document architecture decisions with rationale and evidence.
+  tasks:
+    - Group by phase and use hierarchical numbering.
+    - Keep tasks completable in one session.
+  apply:
+    guidelines:
+      - Follow detected project patterns once implementation exists.
+      - Verify external SDK APIs against real Ulanzi examples before use.
+    tdd: false
+    test_command: ""
+  verify:
+    test_command: ""
+    build_command: ""
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas.

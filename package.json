@@ -1,0 +1,13 @@
+{
+  "name": "ulanzi-flight-info",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Simulated flight status plugin for Ulanzi D200",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "check": "node scripts/check.mjs",
+    "test": "node --test test/*.test.js",
+    "build": "node scripts/build.mjs",
+    "package": "npm run check && npm run test && npm run build && node scripts/package.mjs"
+  }
+}
