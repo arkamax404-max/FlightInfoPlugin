@@ -1,6 +1,6 @@
 {
   "name": "ulanzi-flight-info",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "private": true,
   "description": "Personal AirLabs flight status plugin for Ulanzi D200",
   "engines": { "node": ">=20" },
